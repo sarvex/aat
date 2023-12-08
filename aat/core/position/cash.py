@@ -86,9 +86,10 @@ class CashPosition(object):
 
     @staticmethod
     def fromJson(jsn: dict) -> "CashPosition":
-        kwargs = {}
-        kwargs["notional"] = jsn["notional"]
-        kwargs["timestamp"] = datetime.fromtimestamp(jsn["timestamp"])
+        kwargs = {
+            "notional": jsn["notional"],
+            "timestamp": datetime.fromtimestamp(jsn["timestamp"]),
+        }
         kwargs["instrument"] = Instrument.fromJson(jsn["instrument"])
         kwargs["exchange"] = ExchangeType.fromJson(jsn["exchange"])
 

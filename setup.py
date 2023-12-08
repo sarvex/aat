@@ -101,7 +101,7 @@ setup(
     description="Algorithmic trading library",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/timkpaine/{}".format(name),
+    url=f"https://github.com/timkpaine/{name}",
     author="Tim Paine",
     author_email="t.paine154@gmail.com",
     license="Apache 2.0",

@@ -58,9 +58,7 @@ class StrategyManagerUtilsMixin(object):
 
         if instrument.exchange not in self.exchanges():
             raise AATException(
-                "Exchange not installed: {} (Installed are [{}]".format(
-                    instrument.exchange, self.exchanges()
-                )
+                f"Exchange not installed: {instrument.exchange} (Installed are [{self.exchanges()}]"
             )
 
         for exc in self._exchanges:
@@ -82,10 +80,7 @@ class StrategyManagerUtilsMixin(object):
         if exchange:
             for exchange_inst in self._exchanges:
                 if exchange == exchange_inst.exchange():
-                    if instrument:
-                        return await exchange_inst.lookup(instrument)
-                    return []
-
+                    return await exchange_inst.lookup(instrument) if instrument else []
         elif exchange is None:
             ret = []
             for exchange_inst in self._exchanges:

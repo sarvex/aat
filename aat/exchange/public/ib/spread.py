@@ -29,7 +29,7 @@ class SpreadReconstitute(object):
             # need to move in lock step for now
             assert buy.volume == sell.volume
 
-            order = Order(
+            return Order(
                 volume=buy.volume,
                 price=buy.price - sell.price,
                 side=originalOrder.side,
@@ -39,7 +39,4 @@ class SpreadReconstitute(object):
                 id=originalOrder.id,
                 timestamp=originalOrder.timestamp,
             )
-
-            return order
-
         return None

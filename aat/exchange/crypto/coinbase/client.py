@@ -105,55 +105,40 @@ class CoinbaseExchangeClient(AuthBase):
 
     def _products(self) -> dict:
         """Fetch list of products from coinbase rest api"""
-        return requests.get("{}/{}".format(self.api_url, "products"), auth=self).json()
+        return requests.get(f"{self.api_url}/products", auth=self).json()
 
     def _accounts(self) -> dict:
         """Fetch list of accounts from coinbase rest api"""
-        return requests.get("{}/{}".format(self.api_url, "accounts"), auth=self).json()
+        return requests.get(f"{self.api_url}/accounts", auth=self).json()
 
     def _account(self, account_id: str) -> dict:
         """Fetch single account info from coinbase rest api"""
-        return requests.get(
-            "{}/{}/{}".format(self.api_url, "accounts", account_id), auth=self
-        ).json()
+        return requests.get(f"{self.api_url}/accounts/{account_id}", auth=self).json()
 
     def _newOrder(self, order_jsn: dict) -> str:
         """create a new order"""
 
         # post my order to the rest endpoint
-        resp = requests.post(
-            "{}/{}".format(self.api_url, "orders"), json=order_jsn, auth=self
-        )
+        resp = requests.post(f"{self.api_url}/orders", json=order_jsn, auth=self)
 
         # if successful, return new order id
-        if resp.status_code == 200:
-            # TODO what if filled immediately?
-            return resp.json()["id"]
-
-        # TODO
-        # print(resp.text)
-        return ""
+        return resp.json()["id"] if resp.status_code == 200 else ""
 
     def _cancelOrder(self, order_jsn: dict) -> bool:
         """delete an existing order"""
         # delete order with given order id
         resp = requests.delete(
-            "{}/{}/{}?product_id={}".format(
-                self.api_url, "orders", order_jsn["id"], order_jsn["product_id"]
-            ),
+            f'{self.api_url}/orders/{order_jsn["id"]}?product_id={order_jsn["product_id"]}',
             auth=self,
         )
 
         # if successfully deleted, return True
-        if resp.status_code == 200:
-            return True
-        # otherwise return false
-        return False
+        return resp.status_code == 200
 
     def _orderBook(self, id: str) -> dict:
         # fetch an instrument's level 3 order book from the rest api
         return requests.get(
-            "{}/{}/{}/book?level=3".format(self.api_url, "products", id), auth=self
+            f"{self.api_url}/products/{id}/book?level=3", auth=self
         ).json()
 
     @lru_cache(None)
@@ -173,7 +158,7 @@ class CoinbaseExchangeClient(AuthBase):
             # as the pair object
             ret.append(
                 Instrument(
-                    name="{}-{}".format(first, second),
+                    name=f"{first}-{second}",
                     type=InstrumentType.PAIR,
                     exchange=self.exchange,
                     broker_id=product["id"],
@@ -200,9 +185,10 @@ class CoinbaseExchangeClient(AuthBase):
         accounts = self._accounts()
 
         # if unauthorized or invalid api key, raise
-        if accounts == {"message": "Unauthorized."} or accounts == {
-            "message": "Invalid API Key"
-        }:
+        if accounts in [
+            {"message": "Unauthorized."},
+            {"message": "Invalid API Key"},
+        ]:
             raise Exception("Coinbase auth failed")
 
         # for each account
@@ -235,9 +221,7 @@ class CoinbaseExchangeClient(AuthBase):
 
     async def newOrder(self, order: Order) -> bool:
         """given an aat Order, construct a coinbase order json"""
-        jsn: Dict[str, Union[str, int, float]] = {}
-        jsn["product_id"] = order.instrument.name
-
+        jsn: Dict[str, Union[str, int, float]] = {"product_id": order.instrument.name}
         if order.order_type == OrderType.LIMIT:
             jsn["type"] = "limit"
             jsn["side"] = order.side.value.lower()
@@ -263,11 +247,7 @@ class CoinbaseExchangeClient(AuthBase):
             jsn["price"] = stop_order.price
             jsn["size"] = round(stop_order.volume / self._multiple, 8)
 
-            if stop_order.side == Side.BUY:
-                jsn["stop"] = "entry"
-            else:
-                jsn["stop"] = "loss"
-
+            jsn["stop"] = "entry" if stop_order.side == Side.BUY else "loss"
             jsn["stop_price"] = order.price
 
             if stop_order.order_type == OrderType.LIMIT:
@@ -295,12 +275,8 @@ class CoinbaseExchangeClient(AuthBase):
 
     async def cancelOrder(self, order: Order) -> bool:
         # given an aat Order, convert to json and cancel
-        jsn = {}
+        jsn = {"id": order.id, "product_id": cast(str, order.instrument.brokerId)}
 
-        # coinbase expects client_oid and product_id, so map from
-        # our internal api
-        jsn["id"] = order.id
-        jsn["product_id"] = cast(str, order.instrument.brokerId)
         return self._cancelOrder(jsn)
 
     async def orderBook(
@@ -357,7 +333,7 @@ class CoinbaseExchangeClient(AuthBase):
         # sign the message in a similar way to the rest api, but
         # using the message of GET/users/self/verify
         timestamp = str(time.time())
-        message = timestamp + "GET/users/self/verify"
+        message = f"{timestamp}GET/users/self/verify"
         hmac_key = base64.b64decode(self.secret_key)
         signature = hmac.new(hmac_key, message.encode(), hashlib.sha256)
         signature_b64 = base64.b64encode(signature.digest()).decode()
@@ -404,30 +380,18 @@ class CoinbaseExchangeClient(AuthBase):
                         continue
 
                     elif x["type"] == "received":
-                        o = self._process_received(x)
-
-                        if o:
-                            # yield an open event for the new order
-                            e = Event(type=EventType.OPEN, target=o)
-                            yield e
-
+                        if o := self._process_received(x):
+                            yield Event(type=EventType.OPEN, target=o)
                     elif x["type"] == "done":
-                        o = cast(Order, self._process_done(x))
-                        if o:
-                            e = Event(type=EventType.CANCEL, target=o)
-                            yield e
-
+                        if o := cast(Order, self._process_done(x)):
+                            yield Event(type=EventType.CANCEL, target=o)
                     elif x["type"] == "match":
                         t = self._process_match(x)
-                        e = Event(type=EventType.TRADE, target=t)
-                        yield e
-
+                        yield Event(type=EventType.TRADE, target=t)
                     elif x["type"] == "open":
                         # TODO how are these differentiated from received?
                         o = self._process_open(x)
-                        e = Event(type=EventType.OPEN, target=o)
-                        yield e
-
+                        yield Event(type=EventType.OPEN, target=o)
                     elif x["type"] == "change":
                         # TODO
                         print("TODO: change", x)
@@ -456,7 +420,7 @@ class CoinbaseExchangeClient(AuthBase):
         # sign the message in a similar way to the rest api, but
         # using the message of GET/users/self/verify
         timestamp = str(time.time())
-        message = timestamp + "GET/users/self/verify"
+        message = f"{timestamp}GET/users/self/verify"
         hmac_key = base64.b64decode(self.secret_key)
         signature = hmac.new(hmac_key, message.encode(), hashlib.sha256)
         signature_b64 = base64.b64encode(signature.digest()).decode()
@@ -491,12 +455,7 @@ class CoinbaseExchangeClient(AuthBase):
                         # TODO yield heartbeats?
                         continue
 
-                    elif x["type"] == "snapshot":
-                        # maintain order book internally
-                        # TODO
-                        ...
-
-                    elif x["type"] == "l2update":
+                    elif x["type"] in ["snapshot", "l2update"]:
                         # maintain order book internally
                         # TODO
                         ...
@@ -505,8 +464,7 @@ class CoinbaseExchangeClient(AuthBase):
                         # maintain order book internally
                         # TODO
                         t = self._process_ticker(x)
-                        e = Event(type=EventType.TRADE, target=t)
-                        yield e
+                        yield Event(type=EventType.TRADE, target=t)
 
     async def websocket_trades(self, subscriptions: List[Instrument]):  # type: ignore
         # copy the base subscription template
@@ -522,7 +480,7 @@ class CoinbaseExchangeClient(AuthBase):
         # sign the message in a similar way to the rest api, but
         # using the message of GET/users/self/verify
         timestamp = str(time.time())
-        message = timestamp + "GET/users/self/verify"
+        message = f"{timestamp}GET/users/self/verify"
         hmac_key = base64.b64decode(self.secret_key)
         signature = hmac.new(hmac_key, message.encode(), hashlib.sha256)
         signature_b64 = base64.b64encode(signature.digest()).decode()
@@ -559,8 +517,7 @@ class CoinbaseExchangeClient(AuthBase):
 
                     elif x["type"] == "ticker":
                         t = self._process_ticker(x)
-                        e = Event(type=EventType.TRADE, target=t)
-                        yield e
+                        yield Event(type=EventType.TRADE, target=t)
 
     def _process_ticker(self, x: Dict[str, Union[str, int, float]]) -> Trade:
         o = Order(
@@ -571,12 +528,11 @@ class CoinbaseExchangeClient(AuthBase):
             self.exchange,
             filled=float(x["last_size"]) * self._multiple,
         )
-        t = Trade(
+        return Trade(
             float(x["last_size"]) * self._multiple,
             float(x["price"]),
             o,
         )
-        return t
 
     def _process_snapshot(self, x: Dict[str, Union[str, int, float]]) -> None:
         # TODO
@@ -587,29 +543,13 @@ class CoinbaseExchangeClient(AuthBase):
         ...
 
     def _process_open(self, x: Dict[str, Union[str, int, float]]) -> Order:
-        # The order is now open on the order book.
-        # This message will only be sent for orders
-        # which are not fully filled immediately.
-        # remaining_size will indicate how much of
-        # the order is unfilled and going on the book.
-        # {
-        #     "type": "open",
-        #     "time": "2014-11-07T08:19:27.028459Z",
-        #     "product_id": "BTC-USD",
-        #     "sequence": 10,
-        #     "order_id": "d50ec984-77a8-460a-b958-66f114b0de9b",
-        #     "price": "200.2",
-        #     "remaining_size": "1.00",
-        #     "side": "sell"
-        # }
-        o = Order(
+        return Order(
             float(x["remaining_size"]) * self._multiple,
             float(x["price"]),
             Side(str(x["side"]).upper()),
             Instrument(str(x["product_id"]), InstrumentType.PAIR, self.exchange),
             self.exchange,
         )
-        return o
 
     def _process_match(self, x: Dict[str, Union[str, int, float]]) -> Trade:
         # A trade occurred between two orders. The aggressor
@@ -726,8 +666,7 @@ class CoinbaseExchangeClient(AuthBase):
                 print("TODO: noprice")
                 return None
 
-            # FIXME don't use remaining_size, lookup original size in order book
-            o = Order(
+            return Order(
                 float(x["remaining_size"]) * self._multiple,
                 float(x["price"]),
                 Side(str(x["side"]).upper()),
@@ -739,8 +678,6 @@ class CoinbaseExchangeClient(AuthBase):
                 self.exchange,
                 id=id,
             )
-            return o
-
         elif x["reason"] == "filled":
             # Will have a match event
             # TODO route these to full local order book
@@ -755,6 +692,27 @@ class CoinbaseExchangeClient(AuthBase):
     def _process_received(
         self, x: Dict[str, Union[str, int, float]]
     ) -> Optional[Order]:
+        if x["order_type"] != "market":
+            # create limit order from the event data
+            return Order(
+                float(x["size"]) * self._multiple,
+                float(x["price"]),
+                Side(str(x["side"]).upper()),
+                Instrument(
+                    str(x["product_id"]), InstrumentType.PAIR, self.exchange
+                ),
+                self.exchange,
+            )
+        if "size" in x and float(x["size"]) <= 0:
+            # ignore zero size orders
+            # TODO why do we even get these?
+            return None
+
+        elif "size" not in x and "funds" in x:
+            print("TODO: funds")
+            # TODO can't handle these yet, no mapping from funds to size/price
+            return None
+
         # generate new Open events
         # A valid order has been received and is now active.
         # This message is emitted for every single valid order as
@@ -800,44 +758,16 @@ class CoinbaseExchangeClient(AuthBase):
         # }
         id = x["order_id"]
 
-        # FIXME make sure we dont need this
-        # if id in self._order_map:
-        #     # yield a received event and get order from dict
-        #     o = self._order_map[id]
-        #     yield Event(type=EventType.RECEIVED, target=o)
-
-        if x["order_type"] == "market":
-            if "size" in x and float(x["size"]) <= 0:
-                # ignore zero size orders
-                # TODO why do we even get these?
-                return None
-
-            elif "size" not in x and "funds" in x:
-                print("TODO: funds")
-                # TODO can't handle these yet, no mapping from funds to size/price
-                return None
-
             # create a market data order from the event data
             # TODO set something for price? float('inf') ?
-            o = Order(
-                float(x["size"]) * self._multiple,
-                0.0,
-                Side(str(x["side"]).upper()),
-                Instrument(str(x["product_id"]), InstrumentType.PAIR, self.exchange),
-                self.exchange,
-                id=id,
-            )
-
-        else:
-            # create limit order from the event data
-            o = Order(
-                float(x["size"]) * self._multiple,
-                float(x["price"]),
-                Side(str(x["side"]).upper()),
-                Instrument(str(x["product_id"]), InstrumentType.PAIR, self.exchange),
-                self.exchange,
-            )
-        return o
+        return Order(
+            float(x["size"]) * self._multiple,
+            0.0,
+            Side(str(x["side"]).upper()),
+            Instrument(str(x["product_id"]), InstrumentType.PAIR, self.exchange),
+            self.exchange,
+            id=id,
+        )
 
     def _process_change(self, x: Dict[str, Union[str, int, float]]) -> Optional[Order]:
         # An order has changed. This is the result

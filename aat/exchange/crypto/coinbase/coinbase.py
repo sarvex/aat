@@ -53,10 +53,6 @@ class CoinbaseProExchange(Exchange):
         if trading_type == TradingType.BACKTEST:
             raise NotImplementedError()
 
-        # don't implement simulation for now
-        if trading_type == TradingType.BACKTEST:
-            raise NotImplementedError()
-
         if self._trading_type == TradingType.SANDBOX:
             # Coinbase sandbox
             super().__init__(ExchangeType("coinbaseprosandbox"))

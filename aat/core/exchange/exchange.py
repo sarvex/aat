@@ -21,9 +21,7 @@ class ExchangeType(object):
         return self.__name
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, ExchangeType):
-            return False
-        return self.name == other.name
+        return self.name == other.name if isinstance(other, ExchangeType) else False
 
     def __bool__(self) -> bool:
         return bool(self.__name)
@@ -39,4 +37,4 @@ class ExchangeType(object):
         return ExchangeType(name=jsn["name"])
 
     def __repr__(self) -> str:
-        return "Exchange({})".format(self.__name) if self.__name else "No Exchange"
+        return f"Exchange({self.__name})" if self.__name else "No Exchange"

@@ -15,30 +15,28 @@ class SellPlusPercentStrategy(Strategy):
 
     async def onStart(self, event: Event) -> None:
         pos = self.positions()
-        print("positions: {}".format(pos))
+        print(f"positions: {pos}")
 
     async def onTrade(self, event: Event) -> None:
         """Called whenever a `Trade` event is received"""
         trade: Trade = event.target  # type: ignore
 
         # no current orders, no past trades
-        if not self.orders(trade.instrument) and not self.trades(trade.instrument):
-            req = Order(
-                side=Side.BUY,
-                price=trade.price,
-                volume=math.ceil(1000 / trade.price),
-                instrument=trade.instrument,
-                exchange=trade.exchange,
-            )
+        if not self.orders(trade.instrument):
+            if not self.trades(trade.instrument):
+                req = Order(
+                    side=Side.BUY,
+                    price=trade.price,
+                    volume=math.ceil(1000 / trade.price),
+                    instrument=trade.instrument,
+                    exchange=trade.exchange,
+                )
 
-            print("requesting buy : {}".format(req))
-            await self.newOrder(req)
+                print(f"requesting buy : {req}")
+                await self.newOrder(req)
 
-        else:
-            # no current orders, 1 past trades, and stop set
-            if (
-                not self.orders(trade.instrument)
-                and len(self.trades(trade.instrument)) == 1
+            elif (
+                len(self.trades(trade.instrument)) == 1
                 and trade.instrument in self._stop
                 and (
                     trade.price >= self._stop[trade.instrument][0]
@@ -53,7 +51,7 @@ class SellPlusPercentStrategy(Strategy):
                     exchange=trade.exchange,
                 )
 
-                print("requesting sell : {}".format(req))
+                print(f"requesting sell : {req}")
                 await self.newOrder(req)
 
     async def onBought(self, event: Event) -> None:
@@ -95,9 +93,7 @@ if __name__ == "__main__":
             "backtest",
             "--load_accounts",
             "--exchanges",
-            "aat.exchange.generic:CSV,{}".format(
-                os.path.join(os.path.dirname(__file__), "data", "aapl.csv")
-            ),
+            f'aat.exchange.generic:CSV,{os.path.join(os.path.dirname(__file__), "data", "aapl.csv")}',
             "--strategies",
             "aat.strategy.sample.readonly:ReadOnlyStrategy",
         ]

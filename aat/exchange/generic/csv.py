@@ -12,7 +12,7 @@ class CSV(Exchange):
     """CSV File Exchange"""
 
     def __init__(self, trading_type: TradingType, verbose: bool, filename: str) -> None:
-        super().__init__(ExchangeType("csv-{}".format(filename)))
+        super().__init__(ExchangeType(f"csv-{filename}"))
         self._trading_type = trading_type
         self._verbose = verbose
         self._filename = filename
@@ -24,7 +24,7 @@ class CSV(Exchange):
 
     async def instruments(self) -> List[Instrument]:
         """get list of available instruments"""
-        return list(set(_.instrument for _ in self._data))
+        return list({_.instrument for _ in self._data})
 
     async def connect(self) -> None:
         with open(self._filename) as csvfile:

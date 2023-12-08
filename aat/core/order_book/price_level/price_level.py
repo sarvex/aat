@@ -47,15 +47,14 @@ class _PriceLevel(object):
         if order.order_type == OrderType.STOP:
             if order.stop_target in self._stop_orders:
                 return
-            self._stop_orders.append(cast(Order, order.stop_target))
-        else:
-            if order in self._orders:
-                # change event
-                self._collector.pushChange(order)
             else:
-                if order.filled < order.volume:
-                    self._orders.append(order)
-                    self._collector.pushOpen(order)
+                self._stop_orders.append(cast(Order, order.stop_target))
+        elif order in self._orders:
+            # change event
+            self._collector.pushChange(order)
+        elif order.filled < order.volume:
+            self._orders.append(order)
+            self._collector.pushOpen(order)
 
     def find(self, order: Order) -> Optional[Order]:
         # check if order is in level
@@ -63,10 +62,7 @@ class _PriceLevel(object):
             # order not here/not here anymore
             return None
 
-        for o in self._orders:
-            if o.id == order.id:
-                return o
-        return None
+        return next((o for o in self._orders if o.id == order.id), None)
 
     def modify(self, order: Order) -> Order:
         # check if order is in level
@@ -259,8 +255,7 @@ class _PriceLevel(object):
 
     def __iter__(self) -> Iterator[Order]:
         """iterate through orders"""
-        for order in self._orders:
-            yield order
+        yield from self._orders
 
     def __len__(self) -> int:
         """get number of orders"""

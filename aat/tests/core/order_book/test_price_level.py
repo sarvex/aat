@@ -6,7 +6,7 @@ class TestOrderBook:
     def test_price_level(self):
         # just instantiate, validate below
         pl = _PriceLevel(5.0, _Collector())
-        assert bool(pl) is False
+        assert not bool(pl)
 
     # def test_price_level_iter(self):
     #     pl = _PriceLevel(5, _Collector())

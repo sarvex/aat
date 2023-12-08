@@ -52,9 +52,7 @@ if __name__ == "__main__":
             "backtest",
             "--load_accounts",
             "--exchanges",
-            "aat.exchange.generic:CSV,{}".format(
-                os.path.join(os.path.dirname(__file__), "data", "aapl.csv")
-            ),
+            f'aat.exchange.generic:CSV,{os.path.join(os.path.dirname(__file__), "data", "aapl.csv")}',
             "--strategies",
             "aat.strategy.sample.csv.received:ReceivedStrategy",
         ]

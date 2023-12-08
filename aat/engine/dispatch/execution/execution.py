@@ -44,7 +44,7 @@ class OrderManager(ManagerBase):
     async def newOrder(self, strategy: Optional["Strategy"], order: Order) -> bool:
         exchange = self._exchanges.get(order.exchange)
         if not exchange:
-            raise Exception("Exchange not installed: {}".format(order.exchange))
+            raise Exception(f"Exchange not installed: {order.exchange}")
 
         # stash in case execution occurs before newOrder returns
         self._pending_action.append((order, cast("Strategy", strategy)))
@@ -72,7 +72,7 @@ class OrderManager(ManagerBase):
     async def cancelOrder(self, strategy: Optional["Strategy"], order: Order) -> bool:
         exchange = self._exchanges.get(order.exchange)
         if not exchange:
-            raise AATException("Exchange not installed: {}".format(order.exchange))
+            raise AATException(f"Exchange not installed: {order.exchange}")
 
         # stash in case cancel occurs before cancelOrder returns
         self._pending_action.append((order, cast("Strategy", strategy)))

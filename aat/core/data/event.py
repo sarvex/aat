@@ -45,9 +45,11 @@ class Event(object):
             raise NotImplementedError()
         target = (
             {
-                "target." + k: v
+                f"target.{k}": v
                 for k, v in (
-                    self.target.json(flat=flat) if hasattr(self.target, "json") else {}
+                    self.target.json(flat=flat)
+                    if hasattr(self.target, "json")
+                    else {}
                 ).items()
             }
             if self.target

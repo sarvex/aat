@@ -31,7 +31,7 @@ class BuyAndHoldCBStrategy(Strategy):
                 exchange=trade.exchange,
             )
 
-            print("requesting buy : {}".format(req))
+            print(f"requesting buy : {req}")
 
             await self.newOrder(req)
 

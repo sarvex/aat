@@ -30,7 +30,7 @@ class ServerApplication(tornado.web.Application):
 
         settings = {
             "cookie_secret": cookie_secret,
-            "login_url": basepath + "login",
+            "login_url": f"{basepath}login",
             "debug": debug,
         }
 

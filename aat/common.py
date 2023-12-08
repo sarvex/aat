@@ -64,11 +64,7 @@ def _merge(lst1: List, lst2: List, sum: bool = True) -> List:
     df.fillna(method="ffill", inplace=True)
     df.fillna(0.0, inplace=True)
 
-    if sum:
-        df = df.sum(axis=1)
-    else:
-        df = df.mean(axis=1)
-
+    df = df.sum(axis=1) if sum else df.mean(axis=1)
     df = df.reset_index().values.tolist()
 
     return [(b, a.to_pydatetime()) for a, b in df]

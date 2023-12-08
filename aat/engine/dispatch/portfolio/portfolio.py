@@ -18,7 +18,7 @@ class _Serializer(JSONEncoder):
         elif isinstance(obj, datetime):
             return obj.timestamp()
         else:
-            raise Exception("Unknown type: {} - {}".format(type(obj), obj))
+            raise Exception(f"Unknown type: {type(obj)} - {obj}")
 
 
 class Portfolio(object):
@@ -55,21 +55,19 @@ class Portfolio(object):
 
     def updateAccount(self, positions: List[Position]) -> None:
         """update positions tracking with a position from the exchange"""
-        options = {i: s for i, s in enumerate(self._strategies)}
+        options = dict(enumerate(self._strategies))
 
         if positions:
             print("Attribute positions:")
 
         for position in positions:
-            print("Position:\n{}".format(position))
+            print(f"Position:\n{position}")
 
             try:
                 choice = (
                     int(
                         input(
-                            "Select a strategy to attribute to:\n{}\n...".format(
-                                options
-                            )
+                            f"Select a strategy to attribute to:\n{options}\n..."
                         )
                     )
                     if len(options) > 1
@@ -85,7 +83,7 @@ class Portfolio(object):
                 print("Ignoring position...")
                 continue
             else:
-                print("Attributing to strategy: {}".format(options[choice]))
+                print(f"Attributing to strategy: {options[choice]}")
                 self._active_positions_by_instrument[position.instrument] = [position]
 
                 if (
@@ -118,8 +116,6 @@ class Portfolio(object):
             # TODO update notional/size/price etc
             prev_size: float = cur_pos.size
             prev_price: float = cur_pos.price
-            prev_notional: float = prev_size * prev_price
-
             cur_pos.size = (
                 cur_pos.size  # type: ignore # TODO why is this flagging
                 + (
@@ -133,6 +129,8 @@ class Portfolio(object):
             if (prev_size >= 0 and cur_pos.size > prev_size) or (
                 prev_size <= 0 and cur_pos.size < prev_size
             ):  # type: ignore
+                prev_notional: float = prev_size * prev_price
+
                 # increasing position size
                 # update average price
                 cur_pos.price = (
@@ -169,7 +167,7 @@ class Portfolio(object):
                 # deduct from unrealized pnl
                 cur_pos.unrealizedPnl = (cur_pos.unrealizedPnl - pnl, trade.timestamp)  # type: ignore # TODO why is this flagging
 
-            # TODO close if side is 0?
+                # TODO close if side is 0?
 
         else:
             # If strategy has no positions yet, make a new dict
@@ -304,15 +302,15 @@ class Portfolio(object):
             #######
             # Pnl #
             #######
-            total_pnl_col = "pnl:{}".format(instrument.name)
-            unrealized_pnl_col = "ur:{}".format(instrument.name)
+            total_pnl_col = f"pnl:{instrument.name}"
+            unrealized_pnl_col = f"ur:{instrument.name}"
             pnl_cols.append(unrealized_pnl_col)
             unrealized_pnl_history = pd.DataFrame(
                 position.unrealizedPnlHistory, columns=[unrealized_pnl_col, "when"]
             )
             unrealized_pnl_history.set_index("when", inplace=True)
 
-            realized_pnl_col = "r:{}".format(instrument.name)
+            realized_pnl_col = f"r:{instrument.name}"
             pnl_cols.append(realized_pnl_col)
             realized_pnl_history = pd.DataFrame(
                 position.pnlHistory, columns=[realized_pnl_col, "when"]
@@ -349,15 +347,15 @@ class Portfolio(object):
             #######
             # Pnl #
             #######
-            total_pnl_col = "pnl:{}".format(instrument.name)
-            unrealized_pnl_col = "ur:{}".format(instrument.name)
+            total_pnl_col = f"pnl:{instrument.name}"
+            unrealized_pnl_col = f"ur:{instrument.name}"
             pnl_cols.append(unrealized_pnl_col)
             unrealized_pnl_history = pd.DataFrame(
                 position.unrealizedPnlHistory, columns=[unrealized_pnl_col, "when"]
             )
             unrealized_pnl_history.set_index("when", inplace=True)
 
-            realized_pnl_col = "r:{}".format(instrument.name)
+            realized_pnl_col = f"r:{instrument.name}"
             pnl_cols.append(realized_pnl_col)
             realized_pnl_history = pd.DataFrame(
                 position.pnlHistory, columns=[realized_pnl_col, "when"]
@@ -427,7 +425,7 @@ class Portfolio(object):
             #################
             # Position Size #
             #################
-            size_col = "s:{}".format(instrument.name)
+            size_col = f"s:{instrument.name}"
             size_cols.append(size_col)
             size_history = pd.DataFrame(
                 position.sizeHistory, columns=[size_col, "when"]
@@ -453,7 +451,7 @@ class Portfolio(object):
             #################
             # Position Size #
             #################
-            size_col = "s:{}".format(instrument.name)
+            size_col = f"s:{instrument.name}"
             size_cols.append(size_col)
             size_history = pd.DataFrame(
                 position.sizeHistory, columns=[size_col, "when"]
@@ -479,7 +477,7 @@ class Portfolio(object):
             #################
             # Position Size #
             #################
-            notional_col = "n:{}".format(instrument.name)
+            notional_col = f"n:{instrument.name}"
             notional_cols.append(notional_col)
             notional_history = pd.DataFrame(
                 position.notionalHistory, columns=[notional_col, "when"]
@@ -507,7 +505,7 @@ class Portfolio(object):
             #################
             # Position Size #
             #################
-            notional_col = "n:{}".format(instrument.name)
+            notional_col = f"n:{instrument.name}"
             notional_cols.append(notional_col)
             notional_history = pd.DataFrame(
                 position.notionalHistory, columns=[notional_col, "when"]
@@ -532,7 +530,7 @@ class Portfolio(object):
             #################
             # Position Size #
             #################
-            investment_col = "i:{}".format(instrument.name)
+            investment_col = f"i:{instrument.name}"
             investment_cols.append(investment_col)
             investment_history = pd.DataFrame(
                 position.investmentHistory, columns=[investment_col, "when"]
@@ -550,21 +548,21 @@ class Portfolio(object):
         return self._constructDf(portfolio)[investment_cols]
 
     def save(self, filename_prefix: str) -> None:
-        with open("{}.prices.json".format(filename_prefix), "w") as fp:
+        with open(f"{filename_prefix}.prices.json", "w") as fp:
             json.dump(
                 {json.dumps(k.json()): v for k, v in self._prices.items()},
                 fp,
                 cls=_Serializer,
             )
 
-        with open("{}.trades.json".format(filename_prefix), "w") as fp:
+        with open(f"{filename_prefix}.trades.json", "w") as fp:
             json.dump(
                 {json.dumps(k.json()): v for k, v in self._trades.items()},
                 fp,
                 cls=_Serializer,
             )
 
-        with open("{}.active_by_inst.json".format(filename_prefix), "w") as fp:
+        with open(f"{filename_prefix}.active_by_inst.json", "w") as fp:
             json.dump(
                 {
                     json.dumps(k.json()): v
@@ -574,7 +572,7 @@ class Portfolio(object):
                 cls=_Serializer,
             )
 
-        with open("{}.active_by_strat.json".format(filename_prefix), "w") as fp:
+        with open(f"{filename_prefix}.active_by_strat.json", "w") as fp:
             json.dump(
                 {
                     k: {json.dumps(kk.json()): vv for kk, vv in v.items()}
@@ -585,7 +583,7 @@ class Portfolio(object):
             )
 
     def restore(self, filename_prefix: str) -> None:
-        with open("{}.prices.json".format(filename_prefix), "r") as fp:
+        with open(f"{filename_prefix}.prices.json", "r") as fp:
             jsn = json.load(fp)
             self._prices = {
                 Instrument.fromJson(json.loads(k)): [
@@ -594,21 +592,21 @@ class Portfolio(object):
                 for k, v in jsn.items()
             }
 
-        with open("{}.trades.json".format(filename_prefix), "r") as fp:
+        with open(f"{filename_prefix}.trades.json", "r") as fp:
             jsn = json.load(fp)
             self._trades = {
                 Instrument.fromJson(json.loads(k)): [Trade.fromJson(x) for x in v]
                 for k, v in jsn.items()
             }
 
-        with open("{}.active_by_inst.json".format(filename_prefix), "r") as fp:
+        with open(f"{filename_prefix}.active_by_inst.json", "r") as fp:
             jsn = json.load(fp)
             self._active_positions_by_instrument = {
                 Instrument.fromJson(json.loads(k)): [Position.fromJson(vv) for vv in v]
                 for k, v in jsn.items()
             }
 
-        with open("{}.active_by_strat.json".format(filename_prefix), "r") as fp:
+        with open(f"{filename_prefix}.active_by_strat.json", "r") as fp:
             jsn = json.load(fp)
             self._active_positions_by_strategy = {
                 k: {

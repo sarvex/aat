@@ -56,13 +56,10 @@ class Account(object):
 
     @staticmethod
     def fromJson(jsn: dict) -> "Account":
-        kwargs = {}
-        kwargs["id"] = jsn["id"]
-        kwargs["exchange"] = ExchangeType.fromJson(jsn["exchange"])
+        kwargs = {"id": jsn["id"], "exchange": ExchangeType.fromJson(jsn["exchange"])}
         kwargs["positions"] = [Position.fromJson(x) for x in jsn["positions"]]
 
-        ret = Account(**kwargs)
-        return ret
+        return Account(**kwargs)
 
     @staticmethod
     def schema() -> Mapping[str, Type]:

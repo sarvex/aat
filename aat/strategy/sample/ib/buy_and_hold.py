@@ -20,7 +20,7 @@ class BuyAndHoldIBStrategy(Strategy):
 
         # Subscribe
         await self.subscribe(inst)
-        print("Subscribing to {}".format(inst))
+        print(f"Subscribing to {inst}")
 
     async def onTrade(self, event: Event) -> None:
         """Called whenever a `Trade` event is received"""
@@ -37,7 +37,7 @@ class BuyAndHoldIBStrategy(Strategy):
                 exchange=trade.exchange,
             )
 
-            print("requesting buy : {}".format(req))
+            print(f"requesting buy : {req}")
 
             await self.newOrder(req)
 

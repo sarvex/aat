@@ -11,13 +11,18 @@ from ...config import TradingType, Side, EventType, OrderType
 
 
 def _getName(n: int = 1) -> List[str]:
-    columns = [
-        "".join(np.random.choice(list(string.ascii_uppercase), choice((1, 2, 3, 4))))
+    return [
+        "".join(
+            np.random.choice(
+                list(string.ascii_uppercase), choice((1, 2, 3, 4))
+            )
+        )
         + "."
-        + "".join(np.random.choice(list(string.ascii_uppercase), choice((1, 2))))
+        + "".join(
+            np.random.choice(list(string.ascii_uppercase), choice((1, 2)))
+        )
         for _ in range(n)
     ]
-    return columns
 
 
 class SyntheticExchange(Exchange):
@@ -42,11 +47,11 @@ class SyntheticExchange(Exchange):
                           it will randomly generate an order event.
             positions (bool); randomly generate starting positions
         """
-        super().__init__(ExchangeType("synthetic{}".format(SyntheticExchange._inst)))
-        print("using synthetic exchange: {}".format(self.exchange()))
+        super().__init__(ExchangeType(f"synthetic{SyntheticExchange._inst}"))
+        print(f"using synthetic exchange: {self.exchange()}")
 
         if trading_type not in (TradingType.SIMULATION, TradingType.BACKTEST):
-            raise Exception("Invalid trading type: {}".format(trading_type))
+            raise Exception(f"Invalid trading type: {trading_type}")
         self._trading_type = trading_type
         self._verbose = verbose
         self._sleep = (
@@ -61,8 +66,8 @@ class SyntheticExchange(Exchange):
         self._pending_cancel_orders: Deque[Order] = deque()
         SyntheticExchange._inst += 1
 
-        self._inst_count = int(inst_count)
-        self._backtest_cycles_total = int(cycles)
+        self._inst_count = inst_count
+        self._backtest_cycles_total = cycles
         self._backtest_count = 0
 
         self._time = datetime.now() - timedelta(days=10)
@@ -86,10 +91,10 @@ class SyntheticExchange(Exchange):
         self._seedOrders()
 
     def _seedOrders(self) -> None:
+        # pick a random startpoint, endpoint, and midpoint
+        offset = 50
         # seed all orderbooks
         for instrument, orderbook in self._orderbooks.items():
-            # pick a random startpoint, endpoint, and midpoint
-            offset = 50
             start = round(random() * offset, 2) + offset
             end = start + round(random() * offset + offset / 5, 2) + offset * 2
             mid = (start + end) / 2.0
@@ -147,15 +152,15 @@ class SyntheticExchange(Exchange):
             self._time += timedelta(seconds=randint(25, 30))
 
     def __repr__(self) -> str:
-        ret = ""
-        for ticker, orderbook in self._orderbooks.items():
-            ret += (
+        return "".join(
+            (
                 "--------------------\t"
                 + str(ticker)
                 + "\t--------------------\n"
                 + str(orderbook)
             )
-        return ret
+            for ticker, orderbook in self._orderbooks.items()
+        )
 
     # *************** #
     # General methods #
@@ -186,7 +191,7 @@ class SyntheticExchange(Exchange):
     # ******************* #
     async def tick(self, snapshot: bool = False) -> AsyncIterator[Event]:  # type: ignore[override]
         # first return all seeded orders if snapshot is false
-        if snapshot is False:
+        if not snapshot:
             for _, orderbook in self._orderbooks.items():
                 for order in orderbook:
                     yield Event(type=EventType.OPEN, target=order)
@@ -219,9 +224,8 @@ class SyntheticExchange(Exchange):
                 await asyncio.sleep(self._sleep)
 
             while self._events:
-                event = self._events.popleft()
-                yield event
-                # await asyncio.sleep(self._sleep)
+                yield self._events.popleft()
+                        # await asyncio.sleep(self._sleep)
 
             await asyncio.sleep(self._sleep)
 
@@ -310,11 +314,6 @@ class SyntheticExchange(Exchange):
                         id=self._id,
                     )
 
-                    self._jumptime(order)  # advance time in backtest
-
-                    orderbook.add(order)
-                    self._id += 1
-
                 else:
                     # cross to sell
                     price = round(levels[Side.SELL].price - choice((1, 2, 5)), 2)
@@ -334,12 +333,12 @@ class SyntheticExchange(Exchange):
                         id=self._id,
                     )
 
-                    self._jumptime(order)  # advance time in backtest
+                self._jumptime(order)  # advance time in backtest
 
-                    orderbook.add(order)
-                    self._id += 1
+                orderbook.add(order)
+                self._id += 1
 
-            elif do == "cancel" or do == "change":
+            elif do in ["cancel", "change"]:
                 # cancel an existing order
                 side = choice(("buy", "sell"))
                 levels2 = orderbook.levels(5)
@@ -349,8 +348,7 @@ class SyntheticExchange(Exchange):
                     if price_level is None:
                         continue
 
-                    orders = price_level._orders
-                    if orders:
+                    if orders := price_level._orders:
                         order = choice(orders)
 
                         if order.id in self._omit_cancel:
@@ -375,8 +373,7 @@ class SyntheticExchange(Exchange):
                     if price_level is None:
                         continue
 
-                    orders = price_level._orders
-                    if orders:
+                    if orders := price_level._orders:
                         self._jumptime(order)  # advance time in backtest
                         order = choice(orders)
 
