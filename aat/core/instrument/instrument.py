@@ -54,15 +54,11 @@ class Instrument(object):
         if cls._instrumentdb.get(*args, **kwargs):
             return cls._instrumentdb.get(*args, **kwargs)
 
-        if _CPP:
-            # construct with C++
-            instrument = _make_cpp_instrument(*args, **kwargs)
-
-        else:
-            # pure python
-            instrument = super(Instrument, cls).__new__(cls)
-
-        return instrument
+        return (
+            _make_cpp_instrument(*args, **kwargs)
+            if _CPP
+            else super(Instrument, cls).__new__(cls)
+        )
 
     def __init__(
         self,
@@ -153,11 +149,7 @@ class Instrument(object):
             # set attribute
             self.__exchange = exchange
 
-        elif hasattr(self, "_Instrument__exchanges"):
-            # do nothing
-            pass
-
-        else:
+        elif not hasattr(self, "_Instrument__exchanges"):
             # no exchange known and no exchange provided
             self.__exchanges = []
 
@@ -412,9 +404,7 @@ class Instrument(object):
 
     @staticmethod
     def fromJson(jsn: dict) -> "Instrument":
-        kwargs = {}
-        kwargs["name"] = jsn["name"]
-        kwargs["type"] = InstrumentType(jsn["type"])
+        kwargs = {"name": jsn["name"], "type": InstrumentType(jsn["type"])}
         kwargs["exchanges"] = [ExchangeType.fromJson(e) for e in jsn["exchanges"]]
 
         if "broker_exchange" in jsn and jsn["broker_exchange"]:

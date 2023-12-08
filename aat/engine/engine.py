@@ -180,7 +180,7 @@ class TradingEngine(Application):
         )
 
         for strategy in self.strategies:
-            self.log.critical("Installing strategy: {}".format(strategy))
+            self.log.critical(f"Installing strategy: {strategy}")
             self.registerHandler(strategy)
 
         # warn if no event handlers installed
@@ -293,22 +293,22 @@ class TradingEngine(Application):
         Returns:
             value (EventHandler or None): event handler if its new, else None
         """
-        if handler not in self.event_handlers:
-            # append to handler list
-            self.event_handlers.append(handler)
+        if handler in self.event_handlers:
+            return None
+        # append to handler list
+        self.event_handlers.append(handler)
 
-            # register callbacks for event types
-            for type in EventType.__members__.values():
-                # get callback or callback tuple
-                # could be none if not implemented
-                cbs = handler.callback(type)
+        # register callbacks for event types
+        for type in EventType.__members__.values():
+            # get callback or callback tuple
+            # could be none if not implemented
+            cbs = handler.callback(type)
 
-                for cb in cbs:
-                    if cb:
-                        self.registerCallback(type, cb, handler)
-            handler._setManager(self.manager)
-            return handler
-        return None
+            for cb in cbs:
+                if cb:
+                    self.registerCallback(type, cb, handler)
+        handler._setManager(self.manager)
+        return handler
 
     def _make_async(self, function: Callable) -> Callable[..., Awaitable]:
         async def _wrapper(event: Event) -> Any:
@@ -373,14 +373,14 @@ class TradingEngine(Application):
         # Main event loop
         # **************** #
         async with merge(
-            self._tick_queued_events(),
-            self._tick_queued_targeted_events(),
-            *(
-                self._wraptick(exch.tick())
-                for exch in self.exchanges + [self]
-                if inspect.isasyncgenfunction(exch.tick)
-            ),
-        ).stream() as stream:
+                self._tick_queued_events(),
+                self._tick_queued_targeted_events(),
+                *(
+                    self._wraptick(exch.tick())
+                    for exch in self.exchanges + [self]
+                    if inspect.isasyncgenfunction(exch.tick)
+                ),
+            ).stream() as stream:
             # stream through all events
             async for event in stream:
                 # unpack targetted events
@@ -428,9 +428,7 @@ class TradingEngine(Application):
                                 / intervals
                             )
                         ):
-                            print(
-                                "{} - {}".format(event.target.timestamp, self._latest)
-                            )
+                            print(f"{event.target.timestamp} - {self._latest}")
                             self._latest = self._latest + timedelta(
                                 seconds=1 * intervals
                             )
@@ -523,9 +521,7 @@ class TradingEngine(Application):
 
             try:
                 ret.append(asyncio.ensure_future(callback(event)))
-            except KeyboardInterrupt:
-                raise
-            except SystemExit:
+            except (KeyboardInterrupt, SystemExit):
                 raise
             except BaseException as e:
                 if event.type == EventType.ERROR:

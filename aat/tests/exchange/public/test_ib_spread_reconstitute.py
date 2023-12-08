@@ -37,7 +37,7 @@ class TestIBReconstituteSpread:
 
         sr.push(order1_l1)
 
-        assert sr.get(original_order) == None  # noqa: E711
+        assert sr.get(original_order) is None
 
         sr.push(order1_l2)
 
@@ -49,7 +49,7 @@ class TestIBReconstituteSpread:
 
         sr.push(order2_l1)
 
-        assert sr.get(original_order) == None  # noqa: E711
+        assert sr.get(original_order) is None
 
         sr.push(order2_l2)
 

@@ -26,9 +26,7 @@ class TradingDay(object):
         if open_times and not isinstance(open_times, (tuple, time)):
             # raise exception if wrong type
             raise AATException(
-                "`open_times` must be time or tuple of times, got: {}".format(
-                    type(open_times)
-                )
+                f"`open_times` must be time or tuple of times, got: {type(open_times)}"
             )
         elif isinstance(open_times, time):
             # force tuple
@@ -46,9 +44,7 @@ class TradingDay(object):
         if close_times and not isinstance(close_times, (tuple, time)):
             # raise exception if wrong type
             raise AATException(
-                "`close_times` must be time or tuple of times, got: {}".format(
-                    type(close_times)
-                )
+                f"`close_times` must be time or tuple of times, got: {type(close_times)}"
             )
         elif isinstance(close_times, time):
             # force tuple

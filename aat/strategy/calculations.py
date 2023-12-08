@@ -212,19 +212,15 @@ class CalculationsMixin(object):
             c.replace("n:", "") for c in self._df_notional.columns
         ]
 
-        df_returns = []
-        for col in self._df_notional.columns:
-            # drop if exactly -100% (e.g. "sold")
-            df_returns.append(
-                self._df_notional[col]
-                .drop_duplicates()
-                .pct_change(1)
-                .dropna()
-                .shift(-1)
-                .fillna(0.0)
-            )
-
-        if df_returns:
+        if df_returns := [
+            self._df_notional[col]
+            .drop_duplicates()
+            .pct_change(1)
+            .dropna()
+            .shift(-1)
+            .fillna(0.0)
+            for col in self._df_notional.columns
+        ]:
             self._df_returns = pd.concat(df_returns, axis=1, sort=True)
             self._df_returns.sort_index(inplace=True)
             self._df_returns = self._df_returns.groupby(self._df_returns.index).last()
@@ -239,19 +235,15 @@ class CalculationsMixin(object):
             c.replace("n:", "") for c in self._df_notional_all.columns
         ]
 
-        df_returns = []
-        for col in self._df_notional_all.columns:
-            # drop if exactly -100% (e.g. "sold")
-            df_returns.append(
-                self._df_notional_all[col]
-                .drop_duplicates()
-                .pct_change(1)
-                .dropna()
-                .shift(-1)
-                .fillna(0.0)
-            )
-
-        if df_returns:
+        if df_returns := [
+            self._df_notional_all[col]
+            .drop_duplicates()
+            .pct_change(1)
+            .dropna()
+            .shift(-1)
+            .fillna(0.0)
+            for col in self._df_notional_all.columns
+        ]:
             self._df_returns_all = pd.concat(df_returns, axis=1, sort=True)
             self._df_returns_all.sort_index(inplace=True)
             self._df_returns_all = self._df_returns_all.groupby(
@@ -357,7 +349,7 @@ class CalculationsMixin(object):
             axes[0].get_shared_x_axes().join(axes[0], ax)
 
         plt.rc("legend", fontsize=4)  # using a size in points
-        fig.suptitle("Summary ({})".format(self.name()))  # type: ignore # mixin
+        fig.suptitle(f"Summary ({self.name()})")
 
         # Plot prices
         self.plotPrice(ax=axes[0])
@@ -382,7 +374,7 @@ class CalculationsMixin(object):
         self.plotReturnHistograms(ax=axes[7])
 
         if save:
-            plt.savefig("{}/{}.pdf".format(self._save_dir, self.name()))  # type: ignore # mixin
+            plt.savefig(f"{self._save_dir}/{self.name()}.pdf")
 
         if save_data:
             self._writeoutPerf(self.name())  # type: ignore # mixin
@@ -424,7 +416,7 @@ class CalculationsMixin(object):
         self.plotReturnHistogramsAll(ax=axes[7])
 
         if save:
-            plt.savefig("{}/all.pdf".format(self._save_dir))
+            plt.savefig(f"{self._save_dir}/all.pdf")
 
         if save_data:
             self._writeoutPerf("all")
@@ -447,8 +439,8 @@ class CalculationsMixin(object):
 
         if save or save_data:
             if not CalculationsMixin.__save_dir:
-                CalculationsMixin.__save_dir = "_aat_{}_{}".format(
-                    self.tradingType(), datetime.now().isoformat()  # type: ignore # mixin
+                CalculationsMixin.__save_dir = (
+                    f"_aat_{self.tradingType()}_{datetime.now().isoformat()}"
                 )
 
             self._save_dir = CalculationsMixin.__save_dir
@@ -463,9 +455,7 @@ class CalculationsMixin(object):
 
         CalculationsMixin.__perf_charts.add(self)
 
-        if strategy and self.name() != strategy:  # type: ignore # mixin
-            pass
-        else:
+        if not strategy or self.name() == strategy:
             self.performanceByStrategy(save=save, save_data=save_data)
 
         if len(CalculationsMixin.__perf_charts) == CalculationsMixin.__total_count:
@@ -476,101 +466,56 @@ class CalculationsMixin(object):
                 print("Too many strategies to render, try saving to pdf instead")
 
     def _writeoutPerf(self, filename: str) -> None:
+        self._df_price.to_csv(f"{self._save_dir}/{filename}_df_price.csv")
         if filename == "all":
-            self._df_price.to_csv("{}/{}_df_price.csv".format(self._save_dir, filename))
-            self._df_pnl_all.to_csv("{}/{}_df_pnl.csv".format(self._save_dir, filename))
-            self._df_notional_all.to_csv(
-                "{}/{}_df_notional.csv".format(self._save_dir, filename)
-            )
-            self._df_size_all.to_csv(
-                "{}/{}_df_size.csv".format(self._save_dir, filename)
-            )
-            self._df_total_pnl_all.to_csv(
-                "{}/{}_df_total_pnl.csv".format(self._save_dir, filename)
-            )
-            self._df_up_down_all.to_csv(
-                "{}/{}_df_up_down.csv".format(self._save_dir, filename)
-            )
-            self._df_returns_all.to_csv(
-                "{}/{}_df_returns.csv".format(self._save_dir, filename)
-            )
+            self._df_pnl_all.to_csv(f"{self._save_dir}/{filename}_df_pnl.csv")
+            self._df_notional_all.to_csv(f"{self._save_dir}/{filename}_df_notional.csv")
+            self._df_size_all.to_csv(f"{self._save_dir}/{filename}_df_size.csv")
+            self._df_total_pnl_all.to_csv(f"{self._save_dir}/{filename}_df_total_pnl.csv")
+            self._df_up_down_all.to_csv(f"{self._save_dir}/{filename}_df_up_down.csv")
+            self._df_returns_all.to_csv(f"{self._save_dir}/{filename}_df_returns.csv")
             self._total_returns_all.to_csv(
-                "{}/{}_total_returns.csv".format(self._save_dir, filename)
+                f"{self._save_dir}/{filename}_total_returns.csv"
             )
 
-            self._df_price.to_csv("{}/{}_df_price.csv".format(self._save_dir, filename))
-            self._df_pnl_all.to_csv("{}/{}_df_pnl.csv".format(self._save_dir, filename))
-            self._df_notional_all.to_csv(
-                "{}/{}_df_notional.csv".format(self._save_dir, filename)
-            )
-            self._df_size_all.to_csv(
-                "{}/{}_df_size.csv".format(self._save_dir, filename)
-            )
-            self._df_total_pnl_all.to_csv(
-                "{}/{}_df_total_pnl.csv".format(self._save_dir, filename)
-            )
-            self._df_up_down_all.to_csv(
-                "{}/{}_df_up_down.csv".format(self._save_dir, filename)
-            )
-            self._df_returns_all.to_csv(
-                "{}/{}_df_returns.csv".format(self._save_dir, filename)
-            )
+            self._df_price.to_csv(f"{self._save_dir}/{filename}_df_price.csv")
+            self._df_pnl_all.to_csv(f"{self._save_dir}/{filename}_df_pnl.csv")
+            self._df_notional_all.to_csv(f"{self._save_dir}/{filename}_df_notional.csv")
+            self._df_size_all.to_csv(f"{self._save_dir}/{filename}_df_size.csv")
+            self._df_total_pnl_all.to_csv(f"{self._save_dir}/{filename}_df_total_pnl.csv")
+            self._df_up_down_all.to_csv(f"{self._save_dir}/{filename}_df_up_down.csv")
+            self._df_returns_all.to_csv(f"{self._save_dir}/{filename}_df_returns.csv")
             self._total_returns_all.to_csv(
-                "{}/{}_total_returns.csv".format(self._save_dir, filename)
+                f"{self._save_dir}/{filename}_total_returns.csv"
             )
 
         else:
-            self._df_price.to_csv("{}/{}_df_price.csv".format(self._save_dir, filename))
-            self._df_pnl.to_csv("{}/{}_df_pnl.csv".format(self._save_dir, filename))
-            self._df_notional.to_csv(
-                "{}/{}_df_notional.csv".format(self._save_dir, filename)
-            )
-            self._df_investment.to_csv(
-                "{}/{}_df_investment.csv".format(self._save_dir, filename)
-            )
-            self._df_size.to_csv("{}/{}_df_size.csv".format(self._save_dir, filename))
+            self._df_pnl.to_csv(f"{self._save_dir}/{filename}_df_pnl.csv")
+            self._df_notional.to_csv(f"{self._save_dir}/{filename}_df_notional.csv")
+            self._df_investment.to_csv(f"{self._save_dir}/{filename}_df_investment.csv")
+            self._df_size.to_csv(f"{self._save_dir}/{filename}_df_size.csv")
             self._df_position_notional.to_csv(
-                "{}/{}_df_position_notional.csv".format(self._save_dir, filename)
+                f"{self._save_dir}/{filename}_df_position_notional.csv"
             )
-            self._df_total_pnl.to_csv(
-                "{}/{}_df_total_pnl.csv".format(self._save_dir, filename)
-            )
-            self._df_up_down.to_csv(
-                "{}/{}_df_up_down.csv".format(self._save_dir, filename)
-            )
-            self._df_returns.to_csv(
-                "{}/{}_df_returns.csv".format(self._save_dir, filename)
-            )
-            self._total_returns.to_csv(
-                "{}/{}_total_returns.csv".format(self._save_dir, filename)
-            )
+            self._df_total_pnl.to_csv(f"{self._save_dir}/{filename}_df_total_pnl.csv")
+            self._df_up_down.to_csv(f"{self._save_dir}/{filename}_df_up_down.csv")
+            self._df_returns.to_csv(f"{self._save_dir}/{filename}_df_returns.csv")
+            self._total_returns.to_csv(f"{self._save_dir}/{filename}_total_returns.csv")
 
-            self._df_price.to_csv("{}/{}_df_price.csv".format(self._save_dir, filename))
-            self._df_pnl.to_csv("{}/{}_df_pnl.csv".format(self._save_dir, filename))
-            self._df_notional.to_csv(
-                "{}/{}_df_notional.csv".format(self._save_dir, filename)
-            )
-            self._df_investment.to_csv(
-                "{}/{}_df_investment.csv".format(self._save_dir, filename)
-            )
-            self._df_size.to_csv("{}/{}_df_size.csv".format(self._save_dir, filename))
+            self._df_price.to_csv(f"{self._save_dir}/{filename}_df_price.csv")
+            self._df_pnl.to_csv(f"{self._save_dir}/{filename}_df_pnl.csv")
+            self._df_notional.to_csv(f"{self._save_dir}/{filename}_df_notional.csv")
+            self._df_investment.to_csv(f"{self._save_dir}/{filename}_df_investment.csv")
+            self._df_size.to_csv(f"{self._save_dir}/{filename}_df_size.csv")
             self._df_position_notional.to_csv(
-                "{}/{}_df_position_notional.csv".format(self._save_dir, filename)
+                f"{self._save_dir}/{filename}_df_position_notional.csv"
             )
-            self._df_total_pnl.to_csv(
-                "{}/{}_df_total_pnl.csv".format(self._save_dir, filename)
-            )
-            self._df_up_down.to_csv(
-                "{}/{}_df_up_down.csv".format(self._save_dir, filename)
-            )
-            self._df_returns.to_csv(
-                "{}/{}_df_returns.csv".format(self._save_dir, filename)
-            )
-            self._total_returns.to_csv(
-                "{}/{}_total_returns.csv".format(self._save_dir, filename)
-            )
+            self._df_total_pnl.to_csv(f"{self._save_dir}/{filename}_df_total_pnl.csv")
+            self._df_up_down.to_csv(f"{self._save_dir}/{filename}_df_up_down.csv")
+            self._df_returns.to_csv(f"{self._save_dir}/{filename}_df_returns.csv")
+            self._total_returns.to_csv(f"{self._save_dir}/{filename}_total_returns.csv")
 
-        self.portfolio().save("{}/{}.portfolio".format(self._save_dir, filename))
+        self.portfolio().save(f"{self._save_dir}/{filename}.portfolio")
 
     def _portfolioRestore(self) -> None:
         self.portfolio().restore()  # type: ignore
@@ -601,7 +546,7 @@ def main() -> None:
     args = parser.parse_args()
 
     portfolio = Portfolio()
-    portfolio.restore("{}/{}.portfolio".format(args.folder.rstrip("/"), args.strategy))
+    portfolio.restore(f'{args.folder.rstrip("/")}/{args.strategy}.portfolio')
 
     calculator = CalculationsMixin()
 

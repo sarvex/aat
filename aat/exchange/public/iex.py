@@ -59,20 +59,22 @@ class IEX(Exchange):
 
         self._timeframe = timeframe
 
-        if timeframe == "live":
-            assert trading_type != TradingType.BACKTEST
-
         if timeframe == "1d":
             # intraday testing
             # TODO if today is weekend/holiday, pick last day with data
             self._start_date = (
                 datetime.strptime(start_date, "%Y%m%d")
                 if start_date
-                else datetime.today()
+                else datetime.now()
             )
             self._end_date = (
-                datetime.strptime(end_date, "%Y%m%d") if end_date else datetime.today()
+                datetime.strptime(end_date, "%Y%m%d")
+                if end_date
+                else datetime.now()
             )
+
+        elif timeframe == "live":
+            assert trading_type != TradingType.BACKTEST
 
         self._subscriptions: List[Instrument] = []
 
@@ -95,38 +97,38 @@ class IEX(Exchange):
     # ******************* #
     async def instruments(self) -> List[Instrument]:
         """get list of available instruments"""
-        if self._preload_instruments:
-            instruments = []
-            symbols = self._client.symbols()
+        if not self._preload_instruments:
+            return []
+        instruments = []
+        symbols = self._client.symbols()
 
-            for record in tqdm(symbols, desc="Fetching instruments..."):
-                if (
-                    not record["isEnabled"]
-                    or not record["type"]
-                    or record["type"] == "temp"
-                ):
-                    continue
-                symbol = record["symbol"]
-                brokerExchange = record["exchange"]
-                type = _iex_instrument_types[record["type"]]
-                currency = Instrument(
-                    type=InstrumentType.CURRENCY, name=record["currency"]
+        for record in tqdm(symbols, desc="Fetching instruments..."):
+            if (
+                not record["isEnabled"]
+                or not record["type"]
+                or record["type"] == "temp"
+            ):
+                continue
+            symbol = record["symbol"]
+            brokerExchange = record["exchange"]
+            type = _iex_instrument_types[record["type"]]
+            currency = Instrument(
+                type=InstrumentType.CURRENCY, name=record["currency"]
+            )
+
+            try:
+                inst = Instrument(
+                    name=symbol,
+                    type=type,
+                    exchange=self.exchange(),
+                    brokerExchange=brokerExchange,
+                    currency=currency,
                 )
-
-                try:
-                    inst = Instrument(
-                        name=symbol,
-                        type=type,
-                        exchange=self.exchange(),
-                        brokerExchange=brokerExchange,
-                        currency=currency,
-                    )
-                except (AssertionError, KeyError):
-                    # Happens sometimes on sandbox
-                    continue
-                instruments.append(inst)
-            return instruments
-        return []
+            except (AssertionError, KeyError):
+                # Happens sometimes on sandbox
+                continue
+            instruments.append(inst)
+        return instruments
 
     async def subscribe(self, instrument: Instrument) -> None:
         self._subscriptions.append(instrument)

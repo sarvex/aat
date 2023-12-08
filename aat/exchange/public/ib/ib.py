@@ -155,28 +155,21 @@ class _API(EWrapper, EClient):
         # TODO?
 
     def error(self, reqId: int, errorCode: int, errorString: str) -> None:
-        if errorCode in (
-            110,  # The price does not conform to the minimum price variation for this contract.
-            201,  # Order rejected - Reason:
-        ):
+        if errorCode in {110, 201}:
             self._order_event_queue.put(
                 dict(
                     orderId=reqId,
                     status="Rejected",
                 )
             )
-        elif errorCode in (
-            136,  # This order cannot be cancelled.
-            161,  # Cancel attempted when order is not in a cancellable state. Order permId =
-            10148,  # OrderId <OrderId> that needs to be cancelled can not be cancelled, state:
-        ):
+        elif errorCode in {136, 161, 10148}:
             self._order_event_queue.put(
                 dict(
                     orderId=reqId,
                     status="RejectedCancel",
                 )
             )
-        elif errorCode in (202,):  # Order cancelled - Reason:
+        elif errorCode in {202}:  # Order cancelled - Reason:
             ...
             # also sends event, don't need to handle error here
             # self._order_event_queue.put(
@@ -191,11 +184,7 @@ class _API(EWrapper, EClient):
     def tickPrice(self, reqId: int, tickType: int, price: float, attrib: str) -> None:
         # TODO implement more of order book
 
-        if self._delayed:
-            tick_type = 68  # delayed last
-        else:
-            tick_type = 4  # last
-
+        tick_type = 68 if self._delayed else 4
         if tickType == tick_type:
             self._market_data_queue.put(
                 dict(
@@ -296,13 +285,10 @@ class InteractiveBrokersExchange(Exchange):
             print("*" * 100)
             print("*" * 100)
             self._api.connect("127.0.0.1", 7496, randint(0, 10000))
-            self._api_thread = threading.Thread(target=self._api.run, daemon=True)
-            self._api_thread.start()
-
         else:
             self._api.connect("127.0.0.1", 7497, randint(0, 10000))
-            self._api_thread = threading.Thread(target=self._api.run, daemon=True)
-            self._api_thread.start()
+        self._api_thread = threading.Thread(target=self._api.run, daemon=True)
+        self._api_thread.start()
 
         while self._api.nextOrderId is None:
             print("waiting for IB connect...")
@@ -416,7 +402,7 @@ class InteractiveBrokersExchange(Exchange):
         # let setter finish
         return self._order_cancelled_res.pop(orderId)
 
-    async def tick(self) -> AsyncGenerator[Any, Event]:  # type: ignore[override]
+    async def tick(self) -> AsyncGenerator[Any, Event]:    # type: ignore[override]
         """return data from exchange"""
         while True:
             # clear order events
@@ -503,7 +489,7 @@ class InteractiveBrokersExchange(Exchange):
                     exchange=self.exchange(),
                     filled=1,
                 )
-                t = Trade(volume=1, price=float(price), taker_order=o, maker_orders=[])
+                t = Trade(volume=1, price=price, taker_order=o, maker_orders=[])
                 yield Event(type=EventType.TRADE, target=t)
 
             await asyncio.sleep(0)
@@ -514,16 +500,15 @@ class InteractiveBrokersExchange(Exchange):
     # ******************* #
     # Order Entry Methods #
     # ******************* #
-    async def accounts(self) -> List[Position]:  # TODO account
+    async def accounts(self) -> List[Position]:    # TODO account
         """get accounts from source"""
         self._api.reqPositions()
         i = 0
         while i < 5:
             if self._account_position_queue.qsize() > 0:
                 return [self._account_position_queue.get()]
-            else:
-                await asyncio.sleep(1)
-                i += 1
+            await asyncio.sleep(1)
+            i += 1
         return []
 
     async def newOrder(self, order: AATOrder) -> bool:

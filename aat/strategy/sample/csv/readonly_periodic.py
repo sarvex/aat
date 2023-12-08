@@ -29,7 +29,7 @@ class ReadOnlyStrategy(Strategy):
         print("Finishing...")
 
     async def onPeriodic(self, **kwargs: Any) -> None:
-        print("here: {}".format(self.count))
+        print(f"here: {self.count}")
         self.count += 1
 
 
@@ -44,9 +44,7 @@ if __name__ == "__main__":
             "--timezone",
             "America/New_York",
             "--exchanges",
-            "aat.exchange.generic:CSV,{}".format(
-                os.path.join(os.path.dirname(__file__), "data", "aapl.csv")
-            ),
+            f'aat.exchange.generic:CSV,{os.path.join(os.path.dirname(__file__), "data", "aapl.csv")}',
             "--strategies",
             "aat.strategy.sample.csv.readonly_periodic:ReadOnlyStrategy",
         ]

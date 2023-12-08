@@ -240,10 +240,11 @@ class Order(object):
 
     @staticmethod
     def fromJson(jsn: dict) -> "Order":
-        kwargs = {}
-        kwargs["volume"] = jsn["volume"]
-        kwargs["price"] = jsn["price"]
-        kwargs["side"] = Side(jsn["side"])
+        kwargs = {
+            "volume": jsn["volume"],
+            "price": jsn["price"],
+            "side": Side(jsn["side"]),
+        }
         kwargs["instrument"] = Instrument.fromJson(jsn["instrument"])
         kwargs["exchange"] = ExchangeType.fromJson(jsn["exchange"])
 

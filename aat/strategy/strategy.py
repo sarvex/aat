@@ -27,7 +27,7 @@ class Strategy(
         return repr(self)
 
     def __repr__(self) -> str:
-        return "{}-{}".format(self.__class__.__name__, self.__inst)
+        return f"{self.__class__.__name__}-{self.__inst}"
 
     #########################
     # Event Handler Methods #
@@ -184,8 +184,7 @@ class Strategy(
         Returns:
             None
         """
-        orders = self.orders(instrument=instrument)
-        if orders:
+        if orders := self.orders(instrument=instrument):
             return await asyncio.gather(*(self.cancel(order) for order in orders))
         return []
 

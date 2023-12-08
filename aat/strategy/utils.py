@@ -95,11 +95,11 @@ class StrategyUtilsMixin(object):
     ) -> List[Exchange]:
         """Return list of all available exchanges"""
         return list(
-            set(
+            {
                 __
                 for _ in Instrument._instrumentdb.instruments(type=instrument_type)
                 for __ in _.exchanges
-            )
+            }
         )
 
     def accounts(

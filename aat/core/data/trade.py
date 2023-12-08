@@ -102,7 +102,7 @@ class Trade(object):
     @id.setter
     def id(self, id: str) -> None:
         assert isinstance(id, (str, int))
-        self.__id = str(id)
+        self.__id = id
 
     @property
     def timestamp(self) -> datetime:
@@ -150,13 +150,13 @@ class Trade(object):
         if flat:
             # Typings here to enforce flatness of json
             taker_order: Dict[str, Union[str, int, float, dict]] = {
-                "taker_order." + k: v
+                f"taker_order.{k}": v
                 for k, v in self.taker_order.json(flat=flat).items()
             }
 
             maker_orders: List[Dict[str, Union[str, int, float, dict]]] = [
                 {"maker_order{}." + k: v for k, v in order.json(flat=flat).items()}
-                for i, order in enumerate(self.maker_orders)
+                for order in self.maker_orders
             ]
 
             # update with taker order dict

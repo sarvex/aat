@@ -74,11 +74,11 @@ class MomentumStrategy(Strategy):
 
         # Check that its available
         if inst not in self.instruments():
-            raise Exception("Not available on exchange: {}".format(self._symbol))
+            raise Exception(f"Not available on exchange: {self._symbol}")
 
         # Subscribe
         await self.subscribe(inst)
-        print("Subscribing to {}".format(inst))
+        print(f"Subscribing to {inst}")
 
     async def onTrade(self, event: Event) -> None:
         """Called whenever a `Trade` event is received"""
@@ -138,29 +138,27 @@ class MomentumStrategy(Strategy):
                 )
                 await self.newOrder(self._exit_order)
 
-            else:
-                # check if 15:45 or later
-                if (
+            elif (
                     trade.timestamp.hour >= self._exit_hour
                     and trade.timestamp.minute >= self._exit_minute
                 ):
-                    # exit
-                    print("exiting at EOD")
-                    self._exit_order = Order(
-                        side=Side.SELL,
-                        price=trade.price,
-                        volume=self._quantity,  # type: ignore
-                        instrument=trade.instrument,
-                        order_type=Order.Types.MARKET,
-                        exchange=trade.exchange,
-                    )
-                    await self.newOrder(self._exit_order)
+                # exit
+                print("exiting at EOD")
+                self._exit_order = Order(
+                    side=Side.SELL,
+                    price=trade.price,
+                    volume=self._quantity,  # type: ignore
+                    instrument=trade.instrument,
+                    order_type=Order.Types.MARKET,
+                    exchange=trade.exchange,
+                )
+                await self.newOrder(self._exit_order)
 
-        elif self._enter_trade is not None and self._exit_order is not None:
+        elif self._enter_trade is not None:
             # already ordered, wait for execution
             return
 
-        elif self._enter_trade is None and self._exit_order is not None:
+        elif self._exit_order is not None:
             raise Exception("Inconsistent state machine")
 
         else:

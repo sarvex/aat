@@ -282,10 +282,11 @@ class Position(object):
 
     @staticmethod
     def fromJson(jsn: dict) -> "Position":
-        kwargs = {}
-        kwargs["size"] = jsn["size"]
-        kwargs["price"] = jsn["price"]
-        kwargs["timestamp"] = datetime.fromtimestamp(jsn["timestamp"])
+        kwargs = {
+            "size": jsn["size"],
+            "price": jsn["price"],
+            "timestamp": datetime.fromtimestamp(jsn["timestamp"]),
+        }
         kwargs["instrument"] = Instrument.fromJson(jsn["instrument"])
         kwargs["exchange"] = ExchangeType.fromJson(jsn["exchange"])
         kwargs["trades"] = [Trade.fromJson(x) for x in jsn["trades"]]

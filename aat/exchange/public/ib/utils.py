@@ -104,9 +104,7 @@ def _constructContract(instrument: Instrument) -> Contract:
             and instrument.leg1.underlying != instrument.leg2.underlying
         ):
             # Intercommodity futures use A.B
-            contract.symbol = "{}.{}".format(
-                instrument.leg1.underlying.name, instrument.leg2.underlying.name
-            )
+            contract.symbol = f"{instrument.leg1.underlying.name}.{instrument.leg2.underlying.name}"
 
         elif (
             instrument.leg1
@@ -127,7 +125,7 @@ def _constructContract(instrument: Instrument) -> Contract:
             )
         ):
             # Stock spreads use A,B
-            contract.symbol = "{},{}".format(instrument.leg1.name, instrument.leg2.name)
+            contract.symbol = f"{instrument.leg1.name},{instrument.leg2.name}"
 
         else:
             contract.symbol = instrument.name

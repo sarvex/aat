@@ -38,17 +38,16 @@ def _config_to_dict(
 
 
 def _args_to_dict(args: Any) -> dict:
-    ret: Dict[str, Dict[str, Union[str, list, bool]]] = {}
-    ret["general"] = {}
+    ret: Dict[str, Dict[str, Union[str, list, bool]]] = {"general": {}}
     ret["general"]["verbose"] = args.verbose
     ret["general"]["trading_type"] = args.trading_type
     ret["general"]["load_accounts"] = args.load_accounts
     ret["general"]["api"] = args.api
     ret["general"]["timezone"] = args.timezone
     ret["exchange"] = {
-        "exchanges": list(
+        "exchanges": [
             _.split(",") for _ in itertools.chain.from_iterable(args.exchanges)
-        )
+        ]
     }
     ret["strategy"] = {
         "strategies": list(itertools.chain.from_iterable(args.strategies))
@@ -152,7 +151,4 @@ def parseConfig(argv: Optional[list] = None) -> dict:
     args = parser.parse_args(argv)
 
     # Every engine run requires a static config object
-    if args.config:
-        return _config_to_dict(args.config)
-
-    return _args_to_dict(args)
+    return _config_to_dict(args.config) if args.config else _args_to_dict(args)

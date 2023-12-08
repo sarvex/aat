@@ -7,7 +7,7 @@ try:
 except ImportError:
 
     class Table(object):  # type: ignore
-        def __init__(*args: Any, **kwargs: Any) -> None:
+        def __init__(self, **kwargs: Any) -> None:
             pass
 
         def update(self, *args: Any) -> None:
